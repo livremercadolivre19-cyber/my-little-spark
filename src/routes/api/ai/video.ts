@@ -13,7 +13,6 @@ export const Route = createFileRoute("/api/ai/video")({
     handlers: {
       POST: async ({ request }) => {
         if (!isOwnerRequest(request)) return unauthorized();
-        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const body = (await request.json()) as VideoBody;
           const prompt = body.prompt?.trim();
