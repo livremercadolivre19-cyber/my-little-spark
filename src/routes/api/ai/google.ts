@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerRequest, unauthorized } from "@/lib/owner-auth";
 
 type GoogleBody = {
   prompt?: string;
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/api/ai/google")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const body = (await request.json()) as GoogleBody;
           const prompt = body.prompt?.trim();
