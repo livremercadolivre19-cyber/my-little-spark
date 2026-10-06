@@ -3,12 +3,17 @@ import {
   Bot, Clapperboard, Code2, FileText, Image as ImageIcon, Loader2,
   MessageSquare, Mic, Search, Sparkles, Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AI_PROVIDERS, AI_TOOLS } from "../lib/ai-config";
 
 export const Route = createFileRoute("/ai")({ component: AICentral });
 
 const icons = { MessageSquare, Image: ImageIcon, Clapperboard, Mic, FileText, Code2, Search } as const;
+
+type Health = {
+  providers?: Record<string, boolean>;
+  tools?: Record<string, boolean>;
+};
 
 function AICentral() {
   const [selectedTool, setSelectedTool] = useState("chat");
@@ -19,6 +24,21 @@ function AICentral() {
   const [result, setResult] = useState("");
   const [media, setMedia] = useState("");
   const [error, setError] = useState("");
+  const [health, setHealth] = useState<Health>({});
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai/health")
+      .then(async response => {
+        if (!response.ok) return null;
+        return (await response.json()) as Health;
+      })
+      .then(data => {
+        if (active && data) setHealth(data);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   const reset = (tool: string) => {
     setSelectedTool(tool);
@@ -91,7 +111,7 @@ function AICentral() {
 
         <section className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {AI_PROVIDERS.map(p=><button key={p.id} type="button" onClick={()=>setProvider(p.id)} className={`rounded-2xl border p-4 text-left transition ${provider===p.id?"border-cyan-400/50 bg-cyan-400/10":"border-white/10 bg-white/[0.035] hover:border-cyan-400/30"}`}>
-            <div className="mb-3 flex items-center justify-between"><div className="rounded-xl bg-cyan-400/10 p-2 text-cyan-300"><Bot className="h-5 w-5"/></div><span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-2 py-1 text-[10px] text-cyan-200">{p.id==="openai"||p.id==="runway"?"Configurado":"Adicione a chave"}</span></div>
+            <div className="mb-3 flex items-center justify-between"><div className="rounded-xl bg-cyan-400/10 p-2 text-cyan-300"><Bot className="h-5 w-5"/></div><span className={`rounded-full border px-2 py-1 text-[10px] ${health.providers?.[p.id]?"border-emerald-300/20 bg-emerald-300/5 text-emerald-200":"border-white/10 bg-white/5 text-slate-400"}`}>{health.providers?.[p.id]?"Configurado":"Não configurado"}</span></div>
             <h2 className="font-semibold">{p.name}</h2><p className="mt-1 text-xs leading-5 text-slate-400">{p.description}</p>
           </button>)}
         </section>
@@ -113,7 +133,8 @@ function AICentral() {
               {loading ? <div className="flex min-h-52 flex-col items-center justify-center text-center"><Loader2 className="mb-4 h-9 w-9 animate-spin text-cyan-300"/><p className="font-medium">Processando com IA...</p><div className="mt-4 w-full max-w-md"><div className="mb-2 flex justify-between text-xs text-slate-400"><span>Progresso</span><span>{progress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-cyan-400 transition-all duration-700" style={{width:`${progress}%`}}/></div></div></div>
               : error ? <div className="flex min-h-52 items-center justify-center text-center"><p className="max-w-xl text-sm text-red-300">{error}</p></div>
               : media && selectedTool==="image" ? <div><p className="mb-3 text-xs uppercase tracking-wider text-cyan-300">Resultado</p><img src={media} alt="Imagem gerada pela IA" className="max-h-[520px] w-full rounded-2xl object-contain"/></div>
-              : media && selectedTool==="video" ? <div><p className="mb-3 text-xs uppercase tracking-wider text-cyan-300">Resultado</p><video controls className="w-full rounded-2xl" src={media}/></div>
+              : media && selectedTool==="video" ? <div><p className="mb-3 text-xs uppercase tracking-wider text-cyan-300">Resultado</p><video controls className="w-full rounded-2xl" src={media}/>
+              </div>
               : media && selectedTool==="voice" ? <div className="flex min-h-52 flex-col items-center justify-center"><p className="mb-4 text-sm text-cyan-200">Áudio pronto</p><audio controls src={media} className="w-full max-w-lg"/></div>
               : result ? <div className="min-h-52"><p className="mb-3 text-xs uppercase tracking-wider text-cyan-300">Resultado</p><p className="whitespace-pre-wrap text-sm leading-7 text-slate-200">{result}</p></div>
               : <div className="flex min-h-52 flex-col items-center justify-center text-center"><div className="mb-4 rounded-full border border-cyan-400/20 bg-cyan-400/5 p-4 text-cyan-300"><Bot className="h-8 w-8"/></div><p className="font-medium">Pronto para começar</p><p className="mt-2 max-w-md text-sm text-slate-500">Digite um pedido abaixo para testar.</p></div>}
