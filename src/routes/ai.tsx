@@ -26,6 +26,7 @@ function AICentral() {
   const [error, setError] = useState("");
   const [health, setHealth] = useState<Health>({});
   const [file, setFile] = useState<File | null>(null);
+  const [sources, setSources] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -48,13 +49,14 @@ function AICentral() {
     setError("");
     setProgress(0);
     setFile(null);
+    setSources([]);
     setProvider(tool === "video" ? "runway" : tool === "research" ? "openai" : provider);
   };
 
   async function handleGenerate() {
     if ((!prompt.trim() && selectedTool !== "files") || loading) return;
     setLoading(true); setProgress(selectedTool === "video" ? 5 : 15);
-    setResult(""); setMedia(""); setError("");
+    setResult(""); setMedia(""); setSources([]); setError("");
     try {
       let response: Response;
       if (selectedTool === "video") {
@@ -92,6 +94,11 @@ function AICentral() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Falha ao analisar o arquivo.");
         setProgress(100); setResult(data.text || "O arquivo foi processado, mas não houve resposta de texto.");
+      } else if (selectedTool === "code") {
+        response = await fetch("/api/ai/chat", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ prompt: "Atue como engenheiro de software sênior. Escreva, depure, revise ou explique código com soluções seguras e prontas para produção. Pedido: " + prompt.trim() }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Falha ao processar código.");
+        setProgress(100); setResult(data.text || "A IA não retornou código.");
       } else if (selectedTool === "voice") {
         response=await fetch("/api/ai/voice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:prompt.trim(),voice:"alloy"})});
         if(!response.ok){const data=await response.json().catch(()=>null);throw new Error(data?.error||"Falha ao gerar voz.");}
@@ -101,7 +108,7 @@ function AICentral() {
         response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt.trim()})});
         const data=await response.json();
         if(!response.ok) throw new Error(data.error||"Falha na geração.");
-        setProgress(100); setResult(data.text||"A IA não retornou texto.");
+        setProgress(100); setResult(data.text||"A IA não retornou texto."); setSources(Array.isArray(data.sources) ? data.sources : []);
       }
     } catch(err) {
       setError(err instanceof Error ? err.message : "Ocorreu um erro.");
