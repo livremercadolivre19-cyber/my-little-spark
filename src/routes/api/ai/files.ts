@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerRequest, unauthorized } from "@/lib/owner-auth";
 
 export const Route = createFileRoute("/api/ai/files")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const apiKey = process.env.OPENAI_API_KEY;
           if (!apiKey) return Response.json({ error: "OPENAI_API_KEY não configurada no servidor." }, { status: 503 });
