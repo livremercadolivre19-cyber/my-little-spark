@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerRequest, unauthorized } from "@/lib/owner-auth";
 
 export const Route = createFileRoute("/api/ai/video/$taskId")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ request, params }) => {
+        if (!isOwnerRequest(request)) return unauthorized();
         const apiKey = process.env.RUNWAYML_API_SECRET;
 
         if (!apiKey) {
