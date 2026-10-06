@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerRequest, unauthorized } from "@/lib/owner-auth";
 
 type ResearchBody = {
   prompt?: string;
@@ -8,6 +9,7 @@ export const Route = createFileRoute("/api/ai/research")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const body = (await request.json()) as ResearchBody;
           const prompt = body.prompt?.trim();
