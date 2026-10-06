@@ -6,6 +6,7 @@ export const Route = createFileRoute("/api/ai/image")({
     handlers: {
       POST: async ({ request }) => {
         if (!isOwnerRequest(request)) return unauthorized();
+        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const body = (await request.json()) as { prompt?: string; model?: string };
           const prompt = body.prompt?.trim();
