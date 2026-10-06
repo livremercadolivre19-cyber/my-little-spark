@@ -86,7 +86,7 @@ function AICentral() {
         if(!response.ok){const data=await response.json().catch(()=>null);throw new Error(data?.error||"Falha ao gerar voz.");}
         const blob=await response.blob(); setProgress(100); setMedia(URL.createObjectURL(blob)); setResult("Áudio gerado com sucesso.");
       } else {
-        const endpoint = provider === "google" ? "/api/ai/google" : provider === "anthropic" ? "/api/ai/anthropic" : "/api/ai/chat";
+        const endpoint = selectedTool === "research" ? "/api/ai/research" : provider === "google" ? "/api/ai/google" : provider === "anthropic" ? "/api/ai/anthropic" : "/api/ai/chat";
         response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt.trim()})});
         const data=await response.json();
         if(!response.ok) throw new Error(data.error||"Falha na geração.");
