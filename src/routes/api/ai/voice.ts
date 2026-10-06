@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isOwnerRequest, unauthorized } from "@/lib/owner-auth";
 
 export const Route = createFileRoute("/api/ai/voice")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (!isOwnerRequest(request)) return unauthorized();
         try {
           const body = (await request.json()) as { text?: string; voice?: string };
           const input = body.text?.trim();
