@@ -25,6 +25,7 @@ function AICentral() {
   const [media, setMedia] = useState("");
   const [error, setError] = useState("");
   const [health, setHealth] = useState<Health>({});
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,11 +47,12 @@ function AICentral() {
     setMedia("");
     setError("");
     setProgress(0);
+    setFile(null);
     setProvider(tool === "video" ? "runway" : tool === "research" ? "openai" : provider);
   };
 
   async function handleGenerate() {
-    if (!prompt.trim() || loading) return;
+    if ((!prompt.trim() && selectedTool !== "files") || loading) return;
     setLoading(true); setProgress(selectedTool === "video" ? 5 : 15);
     setResult(""); setMedia(""); setError("");
     try {
@@ -81,6 +83,15 @@ function AICentral() {
         const data=await response.json();
         if(!response.ok) throw new Error(data.error||"Falha ao gerar imagem.");
         setProgress(100); setMedia(data.url ? String(data.url) : data.b64 ? `data:image/png;base64,${data.b64}` : ""); setResult("Imagem gerada com sucesso.");
+      } else if (selectedTool === "files") {
+        if (!file) throw new Error("Selecione um arquivo para analisar.");
+        const form = new FormData();
+        form.append("file", file);
+        form.append("prompt", prompt.trim() || "Analise este arquivo e explique os pontos mais importantes.");
+        response = await fetch("/api/ai/files", { method: "POST", body: form });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Falha ao analisar o arquivo.");
+        setProgress(100); setResult(data.text || "O arquivo foi processado, mas não houve resposta de texto.");
       } else if (selectedTool === "voice") {
         response=await fetch("/api/ai/voice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:prompt.trim(),voice:"alloy"})});
         if(!response.ok){const data=await response.json().catch(()=>null);throw new Error(data?.error||"Falha ao gerar voz.");}
@@ -141,8 +152,9 @@ function AICentral() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+              {selectedTool === "files" && <div className="mb-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3"><label className="flex cursor-pointer items-center gap-3 text-sm text-slate-300"><FileText className="h-5 w-5 text-cyan-300" /><span className="flex-1">{file ? file.name : "Escolher PDF, documento ou arquivo"}</span><input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" /><span className="rounded-lg bg-cyan-400 px-3 py-2 text-xs font-semibold text-slate-950">Selecionar</span></label></div>}
               <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={selectedTool==="video"?"Descreva o vídeo profissional...":selectedTool==="voice"?"Digite o texto que a IA deve falar...":selectedTool==="image"?"Descreva a imagem que deseja criar...":"Digite o que você quer criar..."} rows={4} className="w-full resize-none bg-transparent p-2 text-sm text-white outline-none placeholder:text-slate-600"/>
-              <div className="flex items-center justify-between border-t border-white/10 pt-3"><span className="text-xs text-slate-500">Provedor: {provider}</span><button type="button" onClick={handleGenerate} disabled={loading||!prompt.trim()} className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">{loading?<Loader2 className="h-4 w-4 animate-spin"/>:<Sparkles className="h-4 w-4"/>}{loading?"Processando...":"Gerar"}</button></div>
+              <div className="flex items-center justify-between border-t border-white/10 pt-3"><span className="text-xs text-slate-500">Provedor: {provider}</span><button type="button" onClick={handleGenerate} disabled={loading||((selectedTool !== "files") && !prompt.trim())||(selectedTool === "files" && !file)} className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40">{loading?<Loader2 className="h-4 w-4 animate-spin"/>:<Sparkles className="h-4 w-4"/>}{loading?"Processando...":"Gerar"}</button></div>
             </div>
           </div>
         </section>
