@@ -29,6 +29,10 @@ function AICentral() {
   const [sources, setSources] = useState<string[]>([]);
 
   useEffect(() => {
+    fetch("/api/ai/auth").then(r => r.json()).then(data => { if (!data.authenticated) window.location.href = "/login"; }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     fetch("/api/ai/health")
       .then(async response => {
